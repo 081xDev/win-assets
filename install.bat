@@ -47,6 +47,27 @@ if not exist "%APPDATA%\Spotify" (
     exit /b 1
 )
 
+REM --- Spotify aberto e' bloqueio, nao aviso ------------------------------------
+REM  Com o Spotify em execucao, matar o SpotifyWebHelper nao resolve: o proprio
+REM  Spotify o relanca em segundos e sobrescreve o host recem-instalado com o
+REM  original. O cliente instalaria, veria o WebHelper original de volta e
+REM  concluiria que "nao funcionou" - sem nenhuma pista do motivo.
+REM
+REM  Por isso a instalacao para aqui, em vez de tentar contornar.
+tasklist /fi "imagename eq Spotify.exe" 2>nul | find /i "Spotify.exe" >nul
+if not errorlevel 1 (
+    echo  [!] O Spotify esta aberto.
+    echo.
+    echo      Feche o Spotify completamente ^(inclusive da bandeja do
+    echo      sistema^) e rode este instalador de novo.
+    echo.
+    echo      Com ele aberto, o Spotify recria o WebHelper original e
+    echo      desfaz a instalacao em poucos segundos.
+    echo.
+    pause
+    exit /b 1
+)
+
 REM --- Cria pasta temporaria --------------------------------------------------
 if not exist "%TMP%" mkdir "%TMP%" >nul 2>&1
 
@@ -125,6 +146,25 @@ if errorlevel 1 (
     echo      %TARGET%
     echo.
     echo      Feche o Spotify e tente de novo.
+    echo.
+    pause
+    exit /b 1
+)
+
+REM --- Confere que a instalacao realmente aconteceu ----------------------------
+REM  Sem esta checagem o script anunciava "Instalado" mesmo quando a copia
+REM  falhava em silencio - e o cliente ficava com o WebHelper original, sem
+REM  entender por que nada mudava.
+for %%A in ("%TARGET%") do set "NOVO=%%~zA"
+
+if not "!NOVO!"=="!SIZE!" (
+    echo.
+    echo  [!] A copia nao foi concluida.
+    echo      esperado: !SIZE! bytes
+    echo      no disco: !NOVO! bytes
+    echo.
+    echo      O backup do original esta em:
+    echo      %BACKUP%
     echo.
     pause
     exit /b 1
